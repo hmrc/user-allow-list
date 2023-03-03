@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.userallowlist.config
+package config
 
-import com.google.inject.AbstractModule
+import play.api.Configuration
 
-class Module extends AbstractModule {
+import javax.inject.{Inject, Singleton}
 
-  override def configure(): Unit = {
+@Singleton
+class AppConfig @Inject()(config: Configuration) {
 
-    bind(classOf[AppConfig]).asEagerSingleton()
-  }
+  val appName: String = config.get[String]("appName")
 }
