@@ -21,9 +21,9 @@ import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 import java.time.Instant
 
-final case class AllowListEntry(service: String, feature: String, hashedValue: String, timestamp: Instant)
+final case class AllowListEntry(service: String, feature: String, hashedValue: String, created: Instant)
 
-object AllowListEntry extends MongoJavatimeFormats {
+object AllowListEntry extends MongoJavatimeFormats.Implicits {
 
   implicit lazy val format: OFormat[AllowListEntry] = Json.format
 }

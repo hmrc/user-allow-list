@@ -18,11 +18,12 @@ package repositories
 
 import config.AppConfig
 import models.{AllowListEntry, Done}
-import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes}
+import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes, InsertManyOptions}
+import uk.gov.hmrc.crypto.{OnewayCryptoFactory, PlainText}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
-import java.time.Clock
+import java.time.{Clock, Instant}
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -39,9 +40,9 @@ class AllowListRepository @Inject()(
     domainFormat = AllowListEntry.format,
     indexes = Seq(
       IndexModel(
-        Indexes.ascending("timestamp"),
+        Indexes.ascending("created"),
         IndexOptions()
-          .name("timestampIdx")
+          .name("createdIdx")
           .expireAfter(appConfig.allowListTtlInDays, TimeUnit.DAYS)
       ),
       IndexModel(
@@ -53,7 +54,28 @@ class AllowListRepository @Inject()(
     )
   ) {
 
-  def set(service: String, feature: String, value: Set[String]): Future[Done] = ???
+  private def hashValue(value: String): String = {
+    val saltedValue = s"${appConfig.salt}$value"
+    OnewayCryptoFactory.sha(appConfig.hashKey).hash(PlainText(saltedValue)).value
+  }
+
+  def set(service: String, feature: String, values: Set[String]): Future[Done] = {
+
+    val entries = values.map {
+      value =>
+        AllowListEntry(service, feature, hashValue(value), clock.instant())
+    }
+
+    collection
+      .insertMany(
+        documents = entries.toSeq,
+        options   = InsertManyOptions().ordered(false))
+      .toFuture()
+      .recover {
+        case _ => Done
+      }
+      .map(_ => Done)
+  }
 
   def remove(service: String, feature: String, value: Set[String]): Future[Done] = ???
 
