@@ -14,15 +14,16 @@
  * limitations under the License.
  */
 
-package config
+package models
 
-import play.api.Configuration
+import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
-import javax.inject.{Inject, Singleton}
+import java.time.Instant
 
-@Singleton
-class AppConfig @Inject()(config: Configuration) {
+final case class AllowListEntry(service: String, feature: String, hashedValue: String, timestamp: Instant)
 
-  val appName: String = config.get[String]("appName")
-  val allowListTtlInDays: Int = config.get[Int]("mongodb.allowListTtlInDays")
+object AllowListEntry extends MongoJavatimeFormats {
+
+  implicit lazy val format: OFormat[AllowListEntry] = Json.format
 }
