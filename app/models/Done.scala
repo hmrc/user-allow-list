@@ -14,15 +14,7 @@
  * limitations under the License.
  */
 
-package config
+package models
 
-import play.api.Configuration
-
-import javax.inject.{Inject, Singleton}
-
-@Singleton
-class AppConfig @Inject()(config: Configuration) {
-
-  val appName: String = config.get[String]("appName")
-  val allowListTtlInDays: Int = config.get[Int]("mongodb.allowListTtlInDays")
-}
+sealed abstract class Done
+object Done extends Done
