@@ -78,7 +78,7 @@ class AllowListRepository @Inject()(
       }
       .map(_ => Done)
   }
-
+  
   def remove(service: String, feature: String, values: Set[String]): Future[Done] = {
 
     val hashedValues = values.map(hashValue).toSeq

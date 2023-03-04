@@ -18,27 +18,37 @@ package controllers
 
 import models.CheckRequest
 import play.api.mvc.{Action, ControllerComponents}
+import repositories.AllowListRepository
 import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Predicate, Resource, ResourceLocation, ResourceType, Retrieval}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendBaseController
 
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.ExecutionContext
 
 @Singleton
 class AllowListController @Inject()(
                                      override val controllerComponents: ControllerComponents,
-                                     auth: BackendAuthComponents
-                                   ) extends BackendBaseController {
+                                     auth: BackendAuthComponents,
+                                     repository: AllowListRepository
+                                   )(implicit ec: ExecutionContext) extends BackendBaseController {
 
-  private val permission = Predicate.Permission(Resource(
-    ResourceType("user-allow-list"),
-    ResourceLocation("check")),
-    IAAction("READ")
+  private val permission = Predicate.Permission(
+    resource = Resource(
+      ResourceType("user-allow-list"),
+      ResourceLocation("check")
+    ),
+    action = IAAction("READ")
   )
 
-  def check(feature: String): Action[CheckRequest] =
-    auth.authorizedAction(permission, Retrieval.username).compose(Action(parse.json[CheckRequest])) {
-      implicit request =>
-        
-        Ok
+  private val authorised = auth.authorizedAction(permission, Retrieval.username)
+
+  def check(feature: String): Action[CheckRequest] = authorised.compose(Action(parse.json[CheckRequest])).async {
+    implicit request =>
+      repository
+        .check(request.retrieval.value, feature, request.body.value)
+        .map {
+          case true => Ok
+          case false => NotFound
+        }
   }
 }
