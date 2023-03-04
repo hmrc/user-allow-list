@@ -16,42 +16,74 @@
 
 package controllers
 
-import models.{CheckRequest, DeleteRequest, SetRequest}
+import models.{CheckRequest, CountResponse, DeleteRequest, SetRequest, SummaryResponse}
+import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import repositories.AllowListRepository
+import uk.gov.hmrc.internalauth.client.{BackendAuthComponents, IAAction, Resource, ResourceLocation, ResourceType, Retrieval}
+import uk.gov.hmrc.internalauth.client.Predicate.Permission
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendBaseController
 
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.ExecutionContext
 
 @Singleton
-class AllowListAdminController @Inject()(override val controllerComponents: ControllerComponents) extends BackendBaseController {
+class AllowListAdminController @Inject()(
+                                          override val controllerComponents: ControllerComponents,
+                                          auth: BackendAuthComponents,
+                                          repository: AllowListRepository
+                                        )(implicit ec: ExecutionContext) extends BackendBaseController {
 
-  def set(service: String, feature: String): Action[SetRequest] = Action(parse.json[SetRequest]) {
+  private val authorised = (service: String) =>
+    auth.authorizedAction(Permission(
+      Resource(
+        ResourceType("user-allow-list"),
+        ResourceLocation(service)
+      ),
+      IAAction("ADMIN")
+    ), Retrieval.username)
+
+  def set(service: String, feature: String): Action[SetRequest] = authorised(service).compose(Action(parse.json[SetRequest])).async {
     implicit request =>
-      Ok
+      repository
+        .set(service, feature, request.body.values)
+        .map(_ => Ok)
   }
 
-  def delete(service: String, feature: String): Action[DeleteRequest] = Action(parse.json[DeleteRequest]) {
+  def delete(service: String, feature: String): Action[DeleteRequest] = authorised(service).compose(Action(parse.json[DeleteRequest])).async {
     implicit request =>
-      Ok
+      repository
+        .remove(service, feature, request.body.values)
+        .map(_ => Ok)
   }
 
-  def check(service: String, feature: String): Action[CheckRequest] = Action(parse.json[CheckRequest]) {
+  def check(service: String, feature: String): Action[CheckRequest] = authorised(service).compose(Action(parse.json[CheckRequest])).async {
     implicit request =>
-      Ok
+      repository
+        .check(service, feature, request.body.value)
+        .map {
+          case true => Ok
+          case false => NotFound
+        }  }
+
+  def count(service: String, feature: String): Action[AnyContent] = authorised(service).async {
+    implicit request =>
+      repository
+        .count(service, feature)
+        .map(count => Ok(Json.toJson(CountResponse(count))))
   }
 
-  def count(service: String, feature: String): Action[AnyContent] = Action {
+  def summary(service: String): Action[AnyContent] = authorised(service).async {
     implicit request =>
-      Ok
+      repository
+        .summary(service)
+        .map(summaries => Ok(Json.toJson(SummaryResponse(summaries))))
   }
 
-  def summary(service: String): Action[AnyContent] = Action {
+  def clear(service: String, feature: String): Action[AnyContent] = authorised(service).async {
     implicit request =>
-      Ok
-  }
-
-  def clear(service: String, feature: String): Action[AnyContent] = Action {
-    implicit request =>
-      Ok
+      repository
+        .clear(service, feature)
+        .map(_ => Ok)
   }
 }
