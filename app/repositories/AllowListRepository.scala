@@ -17,13 +17,15 @@
 package repositories
 
 import config.AppConfig
-import models.{AllowListEntry, Done}
-import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes, InsertManyOptions}
+import models.{AllowListEntry, Done, Summary}
+import org.mongodb.scala.model._
+import play.api.libs.json.Json
 import uk.gov.hmrc.crypto.{OnewayCryptoFactory, PlainText}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import uk.gov.hmrc.mongo.play.json.Codecs.JsonOps
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
-import java.time.{Clock, Instant}
+import java.time.Clock
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -51,7 +53,8 @@ class AllowListRepository @Inject()(
           .name("serviceFeatureHashedValueIdx")
           .unique(true)
       )
-    )
+    ),
+    extraCodecs = Seq(Codecs.playFormatCodec(Summary.mongoFormat))
   ) {
 
   private def hashValue(value: String): String = {
@@ -61,9 +64,8 @@ class AllowListRepository @Inject()(
 
   def set(service: String, feature: String, values: Set[String]): Future[Done] = {
 
-    val entries = values.map {
-      value =>
-        AllowListEntry(service, feature, hashValue(value), clock.instant())
+    val entries = values.map { value =>
+      AllowListEntry(service, feature, hashValue(value), clock.instant())
     }
 
     collection
@@ -77,13 +79,44 @@ class AllowListRepository @Inject()(
       .map(_ => Done)
   }
 
-  def remove(service: String, feature: String, value: Set[String]): Future[Done] = ???
+  def remove(service: String, feature: String, values: Set[String]): Future[Done] = {
 
-  def clear(service: String, feature: String): Future[Done] = ???
+    val hashedValues = values.map(hashValue).toSeq
 
-  def check(service: String, feature: String, value: String): Future[Boolean] = ???
+    collection
+      .deleteMany(Filters.and(
+        Filters.equal("service", service),
+        Filters.equal("feature", feature),
+        Filters.in("hashedValue", hashedValues: _*)
+      )).toFuture
+        .map(_ => Done)
+  }
 
-  def count(service: String, feature: String): Future[Int] = ???
+  def clear(service: String, feature: String): Future[Done] =
+    collection
+      .deleteMany(Filters.and(
+        Filters.equal("service", service),
+        Filters.equal("feature", feature)
+      )).toFuture
+        .map(_ => Done)
 
-  def summary(service: String): Future[Map[String, Int]] = ???
+  def check(service: String, feature: String, value: String): Future[Boolean] =
+    collection.find(Filters.and(
+      Filters.equal("service", service),
+      Filters.equal("feature", feature),
+      Filters.equal("hashedValue", hashValue(value))
+    )).toFuture
+      .map(_.nonEmpty)
+
+  def count(service: String, feature: String): Future[Long] =
+    collection.countDocuments(Filters.and(
+      Filters.equal("service", service),
+      Filters.equal("feature", feature)
+    )).toFuture
+
+  def summary(service: String): Future[Seq[Summary]] =
+    collection.aggregate[Summary](List(
+      Aggregates.`match`(Filters.eq("service", service)),
+      Aggregates.group("$feature", Accumulators.sum("count", 1))
+    )).toFuture
 }
