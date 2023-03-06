@@ -57,10 +57,11 @@ class AllowListRepository @Inject()(
     extraCodecs = Seq(Codecs.playFormatCodec(Summary.mongoFormat))
   ) {
 
-  private def hashValue(value: String): String = {
-    val saltedValue = s"${appConfig.salt}$value"
-    OnewayCryptoFactory.sha(appConfig.hashKey).hash(PlainText(saltedValue)).value
-  }
+  private def hashValue(value: String): String =
+    OnewayCryptoFactory
+      .sha(appConfig.hashKey)
+      .hash(PlainText(value))
+      .value
 
   def set(service: String, feature: String, values: Set[String]): Future[Done] = {
 

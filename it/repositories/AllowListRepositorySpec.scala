@@ -42,7 +42,6 @@ class AllowListRepositorySpec
   private val config = Configuration(
     "appName" -> "user-allow-list",
     "mongodb.allowListTtlInDays" -> 1,
-    "mongodb.allowListSalt" -> "salt",
     "mongodb.hashKey" -> hashKey
   )
   private val appConfig = new AppConfig(config)
@@ -62,7 +61,7 @@ class AllowListRepositorySpec
       repository.set(service, feature, Set(value)).futureValue
       val insertedRecord = findAll().futureValue.head
 
-      val expectedHashedValue = OnewayCryptoFactory.sha(hashKey).hash(PlainText("saltvalue")).value
+      val expectedHashedValue = OnewayCryptoFactory.sha(hashKey).hash(PlainText(value)).value
 
       insertedRecord mustEqual AllowListEntry(service, feature, expectedHashedValue, fixedInstant)
     }
@@ -77,8 +76,8 @@ class AllowListRepositorySpec
       repository.set(service, feature, Set(value1, value2)).futureValue
       val insertedRecords = findAll().futureValue
 
-      val expectedHashedValue1 = OnewayCryptoFactory.sha(hashKey).hash(PlainText("saltvalue1")).value
-      val expectedHashedValue2 = OnewayCryptoFactory.sha(hashKey).hash(PlainText("saltvalue2")).value
+      val expectedHashedValue1 = OnewayCryptoFactory.sha(hashKey).hash(PlainText(value1)).value
+      val expectedHashedValue2 = OnewayCryptoFactory.sha(hashKey).hash(PlainText(value2)).value
 
       insertedRecords must contain theSameElementsAs Seq(
         AllowListEntry(service, feature, expectedHashedValue1, fixedInstant),
@@ -92,7 +91,7 @@ class AllowListRepositorySpec
       val feature = "feature"
       val value1 = "value1"
       val value2 = "value2"
-      val hashedValue1 = OnewayCryptoFactory.sha(hashKey).hash(PlainText("saltvalue1")).value
+      val hashedValue1 = OnewayCryptoFactory.sha(hashKey).hash(PlainText(value1)).value
       val existingEntryCreated = fixedInstant.minusSeconds(1)
       val existingEntry = AllowListEntry(service, feature, hashedValue1, existingEntryCreated)
 
@@ -100,7 +99,7 @@ class AllowListRepositorySpec
 
       repository.set(service, feature, Set(value1, value2)).futureValue
 
-      val expectedHashedValue2 = OnewayCryptoFactory.sha(hashKey).hash(PlainText("saltvalue2")).value
+      val expectedHashedValue2 = OnewayCryptoFactory.sha(hashKey).hash(PlainText(value2)).value
 
       findAll().futureValue must contain theSameElementsAs Seq(
         existingEntry,
@@ -116,8 +115,9 @@ class AllowListRepositorySpec
       val service = "service"
       val feature = "feature"
       val value1 = "value1"
-      val hashedValue1 = OnewayCryptoFactory.sha(hashKey).hash(PlainText("saltvalue1")).value
-      val hashedValue2 = OnewayCryptoFactory.sha(hashKey).hash(PlainText("saltvalue2")).value
+      val value2 = "value2"
+      val hashedValue1 = OnewayCryptoFactory.sha(hashKey).hash(PlainText(value1)).value
+      val hashedValue2 = OnewayCryptoFactory.sha(hashKey).hash(PlainText(value2)).value
       val entry1 = AllowListEntry(service, feature, hashedValue1, fixedInstant)
       val entry2 = AllowListEntry(service, feature, hashedValue2, fixedInstant)
 
@@ -134,8 +134,8 @@ class AllowListRepositorySpec
 
     "must remove all items for a given service and feature" in {
 
-      val hashedValue1 = OnewayCryptoFactory.sha(hashKey).hash(PlainText("saltvalue1")).value
-      val hashedValue2 = OnewayCryptoFactory.sha(hashKey).hash(PlainText("saltvalue2")).value
+      val hashedValue1 = OnewayCryptoFactory.sha(hashKey).hash(PlainText("value1")).value
+      val hashedValue2 = OnewayCryptoFactory.sha(hashKey).hash(PlainText("value2")).value
 
       val entry1 = AllowListEntry("service 1", "feature 1", hashedValue1, fixedInstant)
       val entry2 = AllowListEntry("service 1", "feature 1", hashedValue2, fixedInstant)
@@ -155,7 +155,7 @@ class AllowListRepositorySpec
     "must return true when a record exists for the given service, feature and value" in {
 
       val value = "value"
-      val hashedValue = OnewayCryptoFactory.sha(hashKey).hash(PlainText("saltvalue")).value
+      val hashedValue = OnewayCryptoFactory.sha(hashKey).hash(PlainText(value)).value
       val entry = AllowListEntry("service", "feature", hashedValue, fixedInstant)
 
       insert(entry).futureValue
@@ -166,8 +166,9 @@ class AllowListRepositorySpec
     "must return false when a record for the given service, feature and value does not exist" in {
 
       val value1 = "value1"
-      val hashedValue1 = OnewayCryptoFactory.sha(hashKey).hash(PlainText("saltvalue1")).value
-      val hashedValue2 = OnewayCryptoFactory.sha(hashKey).hash(PlainText("saltvalue2")).value
+      val value2 = "value2"
+      val hashedValue1 = OnewayCryptoFactory.sha(hashKey).hash(PlainText(value1)).value
+      val hashedValue2 = OnewayCryptoFactory.sha(hashKey).hash(PlainText(value2)).value
       val entry1 = AllowListEntry("service", "feature", hashedValue2, fixedInstant)
       val entry2 = AllowListEntry("service", "feature 1", hashedValue1, fixedInstant)
       val entry3 = AllowListEntry("service 1", "feature", hashedValue1, fixedInstant)
@@ -182,8 +183,8 @@ class AllowListRepositorySpec
 
     "must return the number of documents for a given service and feature" in {
 
-      val hashedValue1 = OnewayCryptoFactory.sha(hashKey).hash(PlainText("saltvalue1")).value
-      val hashedValue2 = OnewayCryptoFactory.sha(hashKey).hash(PlainText("saltvalue2")).value
+      val hashedValue1 = OnewayCryptoFactory.sha(hashKey).hash(PlainText("value1")).value
+      val hashedValue2 = OnewayCryptoFactory.sha(hashKey).hash(PlainText("value2")).value
 
       val entry1 = AllowListEntry("service 1", "feature 1", hashedValue1, fixedInstant)
       val entry2 = AllowListEntry("service 1", "feature 1", hashedValue2, fixedInstant)
@@ -200,8 +201,8 @@ class AllowListRepositorySpec
 
     "must return the number of records for each feature belonging to the given service" in {
 
-      val hashedValue1 = OnewayCryptoFactory.sha(hashKey).hash(PlainText("saltvalue1")).value
-      val hashedValue2 = OnewayCryptoFactory.sha(hashKey).hash(PlainText("saltvalue2")).value
+      val hashedValue1 = OnewayCryptoFactory.sha(hashKey).hash(PlainText("value1")).value
+      val hashedValue2 = OnewayCryptoFactory.sha(hashKey).hash(PlainText("value2")).value
 
       val entry1 = AllowListEntry("service 1", "feature 1", hashedValue1, fixedInstant)
       val entry2 = AllowListEntry("service 1", "feature 1", hashedValue2, fixedInstant)
