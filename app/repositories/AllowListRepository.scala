@@ -18,17 +18,18 @@ package repositories
 
 import config.AppConfig
 import models.{AllowListEntry, Done, Summary}
+import org.mongodb.scala.MongoBulkWriteException
 import org.mongodb.scala.model._
-import play.api.libs.json.Json
 import uk.gov.hmrc.crypto.{OnewayCryptoFactory, PlainText}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.Codecs.JsonOps
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
 import java.time.Clock
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+
+import scala.jdk.CollectionConverters._
 
 @Singleton
 class AllowListRepository @Inject()(
@@ -63,6 +64,8 @@ class AllowListRepository @Inject()(
       .hash(PlainText(value))
       .value
 
+  private val duplicateErrorCode = 11000
+
   def set(service: String, feature: String, values: Set[String]): Future[Done] = {
 
     val entries = values.map { value =>
@@ -75,7 +78,12 @@ class AllowListRepository @Inject()(
         options   = InsertManyOptions().ordered(false))
       .toFuture()
       .recover {
-        case _ => Done
+        case e: MongoBulkWriteException =>
+          if (e.getWriteErrors.asScala.forall(_.getCode == duplicateErrorCode)) {
+            Done
+          } else {
+            throw e
+          }
       }
       .map(_ => Done)
   }
