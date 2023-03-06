@@ -16,14 +16,25 @@
 
 package models
 
-import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
+import play.api.libs.json._
+import play.api.libs.functional.syntax._
 
-import java.time.Instant
+final case class Summary(feature: String, count: Int)
 
-final case class AllowListEntry(service: String, feature: String, hashedValue: String, created: Instant)
+object Summary {
 
-object AllowListEntry extends MongoJavatimeFormats.Implicits {
+  private lazy val mongoReads: Reads[Summary] = (
+    (__ \ "_id").read[String] and
+    (__ \ "count").read[Int]
+  )(Summary.apply _)
 
-  implicit lazy val format: OFormat[AllowListEntry] = Json.format
+  private lazy val mongoWrites: OWrites[Summary] = (
+    (__ \ "_id").write[String] and
+    (__ \ "count").write[Int]
+  )(unlift(Summary.unapply))
+
+  lazy val mongoFormat: OFormat[Summary] = OFormat(mongoReads, mongoWrites)
+
+  implicit lazy val format: OFormat[Summary] = Json.format
 }
+

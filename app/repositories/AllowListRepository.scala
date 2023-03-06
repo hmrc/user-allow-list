@@ -17,15 +17,19 @@
 package repositories
 
 import config.AppConfig
-import models.{AllowListEntry, Done}
-import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes}
+import models.{AllowListEntry, Done, Summary}
+import org.mongodb.scala.MongoBulkWriteException
+import org.mongodb.scala.model._
+import uk.gov.hmrc.crypto.{OnewayCryptoFactory, PlainText}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
 import java.time.Clock
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+
+import scala.jdk.CollectionConverters._
 
 @Singleton
 class AllowListRepository @Inject()(
@@ -39,9 +43,9 @@ class AllowListRepository @Inject()(
     domainFormat = AllowListEntry.format,
     indexes = Seq(
       IndexModel(
-        Indexes.ascending("timestamp"),
+        Indexes.ascending("created"),
         IndexOptions()
-          .name("timestampIdx")
+          .name("createdIdx")
           .expireAfter(appConfig.allowListTtlInDays, TimeUnit.DAYS)
       ),
       IndexModel(
@@ -50,18 +54,78 @@ class AllowListRepository @Inject()(
           .name("serviceFeatureHashedValueIdx")
           .unique(true)
       )
-    )
+    ),
+    extraCodecs = Seq(Codecs.playFormatCodec(Summary.mongoFormat))
   ) {
 
-  def set(service: String, feature: String, value: Set[String]): Future[Done] = ???
+  private def hashValue(value: String): String =
+    OnewayCryptoFactory
+      .sha(appConfig.hashKey)
+      .hash(PlainText(value))
+      .value
 
-  def remove(service: String, feature: String, value: Set[String]): Future[Done] = ???
+  private val duplicateErrorCode = 11000
 
-  def clear(service: String, feature: String): Future[Done] = ???
+  def set(service: String, feature: String, values: Set[String]): Future[Done] = {
 
-  def check(service: String, feature: String, value: String): Future[Boolean] = ???
+    val entries = values.map { value =>
+      AllowListEntry(service, feature, hashValue(value), clock.instant())
+    }
 
-  def count(service: String, feature: String): Future[Int] = ???
+    collection
+      .insertMany(
+        documents = entries.toSeq,
+        options   = InsertManyOptions().ordered(false))
+      .toFuture()
+      .recover {
+        case e: MongoBulkWriteException =>
+          if (e.getWriteErrors.asScala.forall(_.getCode == duplicateErrorCode)) {
+            Done
+          } else {
+            throw e
+          }
+      }
+      .map(_ => Done)
+  }
 
-  def summary(service: String): Future[Map[String, Int]] = ???
+  def remove(service: String, feature: String, values: Set[String]): Future[Done] = {
+
+    val hashedValues = values.map(hashValue).toSeq
+
+    collection
+      .deleteMany(Filters.and(
+        Filters.equal("service", service),
+        Filters.equal("feature", feature),
+        Filters.in("hashedValue", hashedValues: _*)
+      )).toFuture
+        .map(_ => Done)
+  }
+
+  def clear(service: String, feature: String): Future[Done] =
+    collection
+      .deleteMany(Filters.and(
+        Filters.equal("service", service),
+        Filters.equal("feature", feature)
+      )).toFuture
+        .map(_ => Done)
+
+  def check(service: String, feature: String, value: String): Future[Boolean] =
+    collection.find(Filters.and(
+      Filters.equal("service", service),
+      Filters.equal("feature", feature),
+      Filters.equal("hashedValue", hashValue(value))
+    )).toFuture
+      .map(_.nonEmpty)
+
+  def count(service: String, feature: String): Future[Long] =
+    collection.countDocuments(Filters.and(
+      Filters.equal("service", service),
+      Filters.equal("feature", feature)
+    )).toFuture
+
+  def summary(service: String): Future[Seq[Summary]] =
+    collection.aggregate[Summary](List(
+      Aggregates.`match`(Filters.eq("service", service)),
+      Aggregates.group("$feature", Accumulators.sum("count", 1))
+    )).toFuture
 }

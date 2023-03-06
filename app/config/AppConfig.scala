@@ -25,4 +25,5 @@ class AppConfig @Inject()(config: Configuration) {
 
   val appName: String = config.get[String]("appName")
   val allowListTtlInDays: Int = config.get[Int]("mongodb.allowListTtlInDays")
+  val hashKey: String = config.get[String]("mongodb.hashKey")
 }
