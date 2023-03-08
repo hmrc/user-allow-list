@@ -37,7 +37,7 @@ class AllowListAdminController @Inject()(
   private val authorised = (service: String) =>
     auth.authorizedAction(Permission(
       Resource(
-        ResourceType("user-allow-list"),
+        ResourceType("user-allow-list-admin"),
         ResourceLocation(service)
       ),
       IAAction("ADMIN")

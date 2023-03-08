@@ -69,7 +69,7 @@ class AllowListAdminControllerSpec
 
     "must set items in the repository for an authorised user" in {
 
-      val predicate = Permission(Resource(ResourceType("user-allow-list"), ResourceLocation("test-service")), IAAction("ADMIN"))
+      val predicate = Permission(Resource(ResourceType("user-allow-list-admin"), ResourceLocation("test-service")), IAAction("ADMIN"))
 
       when(mockRepository.set(any(), any(), any())).thenReturn(Future.successful(Done))
       when(mockStubBehaviour.stubAuth(Some(predicate), Retrieval.username)).thenReturn(Future.successful(Username("username")))
@@ -105,7 +105,7 @@ class AllowListAdminControllerSpec
 
     "must delete items in the repository for an authorised user" in {
 
-      val predicate = Permission(Resource(ResourceType("user-allow-list"), ResourceLocation("test-service")), IAAction("ADMIN"))
+      val predicate = Permission(Resource(ResourceType("user-allow-list-admin"), ResourceLocation("test-service")), IAAction("ADMIN"))
 
       when(mockRepository.remove(any(), any(), any())).thenReturn(Future.successful(Done))
       when(mockStubBehaviour.stubAuth(Some(predicate), Retrieval.username)).thenReturn(Future.successful(Username("username")))
@@ -137,11 +137,11 @@ class AllowListAdminControllerSpec
     }
   }
 
-  "check" - {
+  ".check" - {
 
     "must return OK when the requested value is on the allow list for an authorised user" in {
 
-      val predicate = Permission(Resource(ResourceType("user-allow-list"), ResourceLocation("test-service")), IAAction("ADMIN"))
+      val predicate = Permission(Resource(ResourceType("user-allow-list-admin"), ResourceLocation("test-service")), IAAction("ADMIN"))
 
       when(mockRepository.check(any(), any(), any())).thenReturn(Future.successful(true))
       when(mockStubBehaviour.stubAuth(Some(predicate), Retrieval.username)).thenReturn(Future.successful(Username("username")))
@@ -162,7 +162,7 @@ class AllowListAdminControllerSpec
 
     "must return NOT_FOUND when the requested value is not on the allow list for an authorised user" in {
 
-      val predicate = Permission(Resource(ResourceType("user-allow-list"), ResourceLocation("test-service")), IAAction("ADMIN"))
+      val predicate = Permission(Resource(ResourceType("user-allow-list-admin"), ResourceLocation("test-service")), IAAction("ADMIN"))
 
       when(mockRepository.check(any(), any(), any())).thenReturn(Future.successful(false))
       when(mockStubBehaviour.stubAuth(Some(predicate), Retrieval.username)).thenReturn(Future.successful(Username("username")))
@@ -198,7 +198,7 @@ class AllowListAdminControllerSpec
 
     "must return OK and a count for an authorised user" in {
 
-      val predicate = Permission(Resource(ResourceType("user-allow-list"), ResourceLocation("test-service")), IAAction("ADMIN"))
+      val predicate = Permission(Resource(ResourceType("user-allow-list-admin"), ResourceLocation("test-service")), IAAction("ADMIN"))
 
       when(mockRepository.count(any(), any())).thenReturn(Future.successful(123))
       when(mockStubBehaviour.stubAuth(Some(predicate), Retrieval.username)).thenReturn(Future.successful(Username("username")))
@@ -232,7 +232,7 @@ class AllowListAdminControllerSpec
 
     "must return OK and a summary for an authorised user" in {
 
-      val predicate = Permission(Resource(ResourceType("user-allow-list"), ResourceLocation("test-service")), IAAction("ADMIN"))
+      val predicate = Permission(Resource(ResourceType("user-allow-list-admin"), ResourceLocation("test-service")), IAAction("ADMIN"))
 
       val summaries = Seq(
         Summary("feature 1", 1),
@@ -271,7 +271,7 @@ class AllowListAdminControllerSpec
 
     "must return OK and clear the feature for an authorised user" in {
 
-      val predicate = Permission(Resource(ResourceType("user-allow-list"), ResourceLocation("test-service")), IAAction("ADMIN"))
+      val predicate = Permission(Resource(ResourceType("user-allow-list-admin"), ResourceLocation("test-service")), IAAction("ADMIN"))
 
       when(mockRepository.clear(any(), any())).thenReturn(Future.successful(Done))
       when(mockStubBehaviour.stubAuth(Some(predicate), Retrieval.username)).thenReturn(Future.successful(Username("username")))
