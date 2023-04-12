@@ -29,7 +29,7 @@ It is used in combination with [user-allow-list-admin-frontend](https://github.c
 
 ### 1. Decide on the identifier and feature name
 
-Before starting any implementation you should decide upon a stable identifier you will use to identify users. For example, a national insurance number or other identifier retrieved from auth. _This cannot be a value provided by a user themselves_. This 
+Before starting any implementation you should decide upon a stable identifier you will use to identify users. For example, a national insurance number or other identifier retrieved from auth. _This cannot be a value provided by a user themselves_. 
 
 You should also decide upon a feature name, which is used to identify a specific list.
 
