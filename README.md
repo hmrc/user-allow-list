@@ -46,13 +46,13 @@ To allow your service to access identifier lists in user-allow-list, you need to
     service: [ your-service-name-here ]
   permissions:
     - resourceType: user-allow-list
-      resourceLocation: '*'
+      resourceLocation: '{service}'
       actions: [ 'READ' ]
 ```
 
 ### 4. Adding a connector to your service
 
-The service exposes a single endpoint to consuming services - `user-allow-list/:feature/check` - where `feature` is a name you can choose, to allow you to manage multiple lists of identifiers. You must first add appropriate tests to ensure this functionality works as you expect ([example](https://github.com/hmrc/claim-child-benefit-frontend/blob/521a961ef277498d8b9da6db5879393466591f6f/it/connectors/UserAllowListConnectorSpec.scala)).
+The service exposes a single endpoint to consuming services - `user-allow-list/:service/:feature/check` - where `service` is the name of your service and `feature` is a name you can choose, to allow you to manage multiple lists of identifiers. You must first add appropriate tests to ensure this functionality works as you expect ([example](https://github.com/hmrc/claim-child-benefit-frontend/blob/521a961ef277498d8b9da6db5879393466591f6f/it/connectors/UserAllowListConnectorSpec.scala)).
 
 Next, to make a request to this endpoint you will need a connector such as the below:
 
@@ -67,7 +67,7 @@ class UserAllowListConnector @Inject() (
   private val internalAuthToken: String = configuration.get[String]("internal-auth.token")
 
   def check(feature: String, value: String)(implicit hc: HeaderCarrier): Future[Boolean] =
-    httpClient.post(url"$userAllowListService/user-allow-list/$feature/check")
+    httpClient.post(url"$userAllowListService/user-allow-list/my-service/$feature/check")
       .setHeader("Authorization" -> internalAuthToken)
       .withBody(Json.toJson(CheckRequest(value)))
       .execute[HttpResponse]

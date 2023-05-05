@@ -9,3 +9,4 @@ POST        /admin/:service/:feature/clear      controllers.AllowListAdminContro
 GET         /admin/:service/summary             controllers.AllowListAdminController.summary(service: String)
 
 POST        /:feature/check                     controllers.AllowListController.check(feature: String)
+POST        /:service/:feature/check            controllers.AllowListController.checkAllowList(service: String, feature: String)

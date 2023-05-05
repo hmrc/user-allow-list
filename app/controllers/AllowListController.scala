@@ -32,20 +32,45 @@ class AllowListController @Inject()(
                                      repository: AllowListRepository
                                    )(implicit ec: ExecutionContext) extends BackendBaseController {
 
-  private val permission = Predicate.Permission(
+
+  @deprecated
+  def check(feature: String): Action[CheckRequest] = {
+
+    val permission = Predicate.Permission(
+      resource = Resource(
+        ResourceType("user-allow-list"),
+        ResourceLocation("check")
+      ),
+      action = IAAction("READ")
+    )
+
+    val authorised = auth.authorizedAction(permission, Retrieval.username)
+
+    authorised.compose(Action(parse.json[CheckRequest])).async {
+      implicit request =>
+        repository
+          .check(request.retrieval.value, feature, request.body.value)
+          .map {
+            case true => Ok
+            case false => NotFound
+          }
+    }
+  }
+
+  private def permission(service: String) = Predicate.Permission(
     resource = Resource(
       ResourceType("user-allow-list"),
-      ResourceLocation("check")
+      ResourceLocation(s"$service/check")
     ),
     action = IAAction("READ")
   )
 
-  private val authorised = auth.authorizedAction(permission, Retrieval.username)
+  private def authorised(service: String) = auth.authorizedAction(permission(service))
 
-  def check(feature: String): Action[CheckRequest] = authorised.compose(Action(parse.json[CheckRequest])).async {
+  def checkAllowList(service: String, feature: String): Action[CheckRequest] = authorised(service).async(parse.json[CheckRequest]) {
     implicit request =>
       repository
-        .check(request.retrieval.value, feature, request.body.value)
+        .check(service, feature, request.body.value)
         .map {
           case true => Ok
           case false => NotFound
