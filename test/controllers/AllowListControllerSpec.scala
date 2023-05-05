@@ -20,6 +20,7 @@ import models.CheckRequest
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
 import org.mockito.Mockito.{times, verify, when}
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{BeforeAndAfterEach, OptionValues}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
@@ -36,20 +37,13 @@ import uk.gov.hmrc.internalauth.client._
 import scala.concurrent.ExecutionContext.global
 import scala.concurrent.Future
 
-class AllowListControllerSpec extends AnyFreeSpec with Matchers with MockitoSugar with BeforeAndAfterEach with OptionValues {
+class AllowListControllerSpec extends AnyFreeSpec with Matchers with MockitoSugar with BeforeAndAfterEach with OptionValues with ScalaFutures {
 
   private val mockRepository = mock[AllowListRepository]
 
   private val mockStubBehaviour = mock[StubBehaviour]
   private val backendAuthComponents: BackendAuthComponents =
     BackendAuthComponentsStub(mockStubBehaviour)(Helpers.stubControllerComponents(), global)
-  private val permission = Predicate.Permission(
-    resource = Resource(
-      ResourceType("user-allow-list"),
-      ResourceLocation("check")
-    ),
-    action = IAAction("READ")
-  )
 
   override def beforeEach(): Unit = {
     Mockito.reset(mockRepository, mockStubBehaviour)
@@ -64,6 +58,14 @@ class AllowListControllerSpec extends AnyFreeSpec with Matchers with MockitoSuga
     .build()
 
   ".check" - {
+
+    val permission = Predicate.Permission(
+      resource = Resource(
+        ResourceType("user-allow-list"),
+        ResourceLocation("check")
+      ),
+      action = IAAction("READ")
+    )
 
     "must return OK when the requested value is on the allow list for the given feature" in {
 
@@ -101,6 +103,72 @@ class AllowListControllerSpec extends AnyFreeSpec with Matchers with MockitoSuga
 
       status(result) mustEqual NOT_FOUND
       verify(mockRepository, times(1)).check("test-service", "test-feature", "test-value")
+    }
+  }
+
+  ".checkAllowList" - {
+
+    val permission = Predicate.Permission(
+      resource = Resource(
+        ResourceType("user-allow-list"),
+        ResourceLocation("test-service/check")
+      ),
+      action = IAAction("READ")
+    )
+
+    "must return OK when the requested value is on the allow list for the given feature" in {
+
+      when(mockStubBehaviour.stubAuth(Some(permission), Retrieval.EmptyRetrieval))
+        .thenReturn(Future.unit)
+
+      when(mockRepository.check(any(), any(), any())).thenReturn(Future.successful(true))
+      val checkRequest = CheckRequest("test-value")
+
+      val request =
+        FakeRequest(routes.AllowListController.checkAllowList("test-service", "test-feature"))
+          .withJsonBody(Json.toJson(checkRequest))
+          .withHeaders(AUTHORIZATION -> "my-token")
+
+      val result = route(app, request).value
+
+      status(result) mustEqual OK
+      verify(mockRepository, times(1)).check("test-service", "test-feature", "test-value")
+    }
+
+    "must return NOT_FOUND when the requested value is not on the allow list for the given feature" in {
+
+      when(mockStubBehaviour.stubAuth(Some(permission), Retrieval.EmptyRetrieval))
+        .thenReturn(Future.unit)
+
+      when(mockRepository.check(any(), any(), any())).thenReturn(Future.successful(false))
+      val checkRequest = CheckRequest("test-value")
+
+      val request =
+        FakeRequest(routes.AllowListController.checkAllowList("test-service", "test-feature"))
+          .withJsonBody(Json.toJson(checkRequest))
+          .withHeaders(AUTHORIZATION -> "my-token")
+
+      val result = route(app, request).value
+
+      status(result) mustEqual NOT_FOUND
+      verify(mockRepository, times(1)).check("test-service", "test-feature", "test-value")
+    }
+
+    "must fail when the user is not authorised" in {
+
+      when(mockStubBehaviour.stubAuth(Some(permission), Retrieval.EmptyRetrieval))
+        .thenReturn(Future.failed(new RuntimeException()))
+
+      val checkRequest = CheckRequest("test-value")
+
+      val request =
+        FakeRequest(routes.AllowListController.checkAllowList("test-service", "test-feature"))
+          .withJsonBody(Json.toJson(checkRequest))
+          .withHeaders(AUTHORIZATION -> "my-token")
+
+      route(app, request).value.failed.futureValue
+
+      verify(mockRepository, times(0)).check(any(), any(), any())
     }
   }
 }
