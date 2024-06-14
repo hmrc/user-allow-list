@@ -20,6 +20,7 @@ import config.AppConfig
 import models.{AllowListEntry, Done, Summary}
 import org.mongodb.scala.MongoBulkWriteException
 import org.mongodb.scala.model._
+import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 import uk.gov.hmrc.crypto.{OnewayCryptoFactory, PlainText}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
