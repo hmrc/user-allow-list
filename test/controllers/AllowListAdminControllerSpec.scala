@@ -16,7 +16,7 @@
 
 package controllers
 
-import models._
+import models.*
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
 import org.mockito.Mockito.{never, times, verify, when}
@@ -28,7 +28,7 @@ import org.scalatestplus.mockito.MockitoSugar
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
 import repositories.AllowListRepository
 import uk.gov.hmrc.internalauth.client.Predicate.Permission
@@ -200,7 +200,7 @@ class AllowListAdminControllerSpec
 
       val predicate = Permission(Resource(ResourceType("user-allow-list-admin"), ResourceLocation("test-service")), IAAction("ADMIN"))
 
-      when(mockRepository.count(any(), any())).thenReturn(Future.successful(123))
+      when(mockRepository.count(any(), any())).thenReturn(Future.successful(123L))
       when(mockStubBehaviour.stubAuth(Some(predicate), Retrieval.username)).thenReturn(Future.successful(Username("username")))
 
       val checkRequest = CheckRequest("value")
@@ -211,7 +211,7 @@ class AllowListAdminControllerSpec
           .withHeaders("Authorization" -> "Token foo")
 
       val result = route(app, request).value
-      val expectedResponse = CountResponse(123)
+      val expectedResponse = CountResponse(123L)
 
       status(result) mustEqual OK
       contentAsJson(result) mustEqual Json.toJson(expectedResponse)

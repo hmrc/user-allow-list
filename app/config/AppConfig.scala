@@ -24,6 +24,6 @@ import javax.inject.{Inject, Singleton}
 class AppConfig @Inject()(config: Configuration) {
 
   val appName: String = config.get[String]("appName")
-  val allowListTtlInDays: Int = config.get[Int]("mongodb.allowListTtlInDays")
+  val allowListTtlInDays: Long = config.get[Long]("mongodb.allowListTtlInDays")
   val hashKey: String = config.get[String]("mongodb.hashKey")
 }

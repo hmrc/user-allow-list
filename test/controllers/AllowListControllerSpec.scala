@@ -28,11 +28,11 @@ import org.scalatestplus.mockito.MockitoSugar
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
 import repositories.AllowListRepository
 import uk.gov.hmrc.internalauth.client.test.{BackendAuthComponentsStub, StubBehaviour}
-import uk.gov.hmrc.internalauth.client._
+import uk.gov.hmrc.internalauth.client.*
 
 import scala.concurrent.ExecutionContext.global
 import scala.concurrent.Future

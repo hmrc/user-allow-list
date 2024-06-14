@@ -48,7 +48,8 @@ class AllowListRepositorySpec
   private val fixedInstant = Instant.now.truncatedTo(ChronoUnit.MILLIS)
   private val clock = Clock.fixed(fixedInstant, ZoneId.systemDefault())
 
-  protected override val repository = new AllowListRepository(mongoComponent = mongoComponent, appConfig = appConfig, clock = clock)
+  protected override val repository: AllowListRepository =
+    new AllowListRepository(mongoComponent = mongoComponent, appConfig = appConfig, clock = clock)
 
   ".set" - {
 

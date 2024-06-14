@@ -31,7 +31,7 @@ object Summary {
   private lazy val mongoWrites: OWrites[Summary] = (
     (__ \ "_id").write[String] and
     (__ \ "count").write[Int]
-  )(unlift(Summary.unapply))
+  )(o => Tuple.fromProductTyped(o))
 
   lazy val mongoFormat: OFormat[Summary] = OFormat(mongoReads, mongoWrites)
 
