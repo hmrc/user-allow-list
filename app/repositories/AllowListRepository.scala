@@ -98,7 +98,7 @@ class AllowListRepository @Inject()(
         Filters.equal("service", service),
         Filters.equal("feature", feature),
         Filters.in("hashedValue", hashedValues: _*)
-      )).toFuture
+      )).toFuture()
         .map(_ => Done)
   }
 
@@ -107,7 +107,7 @@ class AllowListRepository @Inject()(
       .deleteMany(Filters.and(
         Filters.equal("service", service),
         Filters.equal("feature", feature)
-      )).toFuture
+      )).toFuture()
         .map(_ => Done)
 
   def check(service: String, feature: String, value: String): Future[Boolean] =
@@ -115,18 +115,18 @@ class AllowListRepository @Inject()(
       Filters.equal("service", service),
       Filters.equal("feature", feature),
       Filters.equal("hashedValue", hashValue(value))
-    )).toFuture
+    )).toFuture()
       .map(_.nonEmpty)
 
   def count(service: String, feature: String): Future[Long] =
     collection.countDocuments(Filters.and(
       Filters.equal("service", service),
       Filters.equal("feature", feature)
-    )).toFuture
+    )).toFuture()
 
   def summary(service: String): Future[Seq[Summary]] =
     collection.aggregate[Summary](List(
       Aggregates.`match`(Filters.eq("service", service)),
       Aggregates.group("$feature", Accumulators.sum("count", 1))
-    )).toFuture
+    )).toFuture()
 }
